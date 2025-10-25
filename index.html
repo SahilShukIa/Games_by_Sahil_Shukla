@@ -84,6 +84,10 @@
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
 
+        .game-icon.todo {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
         .game-info {
             flex: 1;
         }
@@ -237,6 +241,122 @@
             font-weight: 700;
             color: #2d3748;
         }
+
+        /* To-Do List Styles */
+        .todo-input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .todo-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .todo-add-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #2d3748;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+            border-color: #c3dafe;
+            background: #ebf8ff;
+        }
+
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 15px;
+            color: #2d3748;
+            word-break: break-word;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #718096;
+        }
+
+        .todo-delete-btn {
+            background: #fc8181;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .todo-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+
+        .todo-empty-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .todo-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
     </style>
 </head>
 <body>
@@ -262,6 +382,14 @@
                     <div class="game-info">
                         <div class="game-title">Rock Paper Scissors</div>
                         <div class="game-desc">Challenge the computer in this classic game</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('todo')">
+                    <div class="game-icon todo">✅</div>
+                    <div class="game-info">
+                        <div class="game-title">To-Do List</div>
+                        <div class="game-desc">Keep track of your daily tasks</div>
                     </div>
                 </div>
             </div>
@@ -311,6 +439,41 @@
                 </div>
 
                 <div class="rps-result" id="rps-result"></div>
+            </div>
+        </div>
+
+        <!-- To-Do List -->
+        <div id="todo" class="game-screen">
+            <button class="back-btn" onclick="backToMenu()">← Back to Menu</button>
+            <div class="game-content">
+                <h2>✅ To-Do List</h2>
+                
+                <div class="todo-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total</div>
+                        <div class="stat-value" id="total-tasks">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Active</div>
+                        <div class="stat-value" id="active-tasks">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Completed</div>
+                        <div class="stat-value" id="completed-tasks">0</div>
+                    </div>
+                </div>
+
+                <div class="todo-input-container">
+                    <input type="text" id="todo-input" class="todo-input" placeholder="Add a new task...">
+                    <button class="todo-add-btn" onclick="addTodo()">➕ Add</button>
+                </div>
+
+                <div id="todo-list" class="todo-list">
+                    <div class="todo-empty">
+                        <div class="todo-empty-icon">📝</div>
+                        <div>No tasks yet. Add your first task above!</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -409,6 +572,84 @@
             document.getElementById('computer-score').textContent = computerScore;
             document.getElementById('ties').textContent = tieCount;
         }
+
+        // To-Do List Logic
+        let todos = [];
+        let todoIdCounter = 0;
+
+        function loadTodos() {
+            const todoList = document.getElementById('todo-list');
+            todoList.innerHTML = '';
+
+            if (todos.length === 0) {
+                todoList.innerHTML = `
+                    <div class="todo-empty">
+                        <div class="todo-empty-icon">📝</div>
+                        <div>No tasks yet. Add your first task above!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            todos.forEach(todo => {
+                const todoItem = document.createElement('div');
+                todoItem.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                todoItem.innerHTML = `
+                    <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
+                           onchange="toggleTodo(${todo.id})">
+                    <div class="todo-text">${todo.text}</div>
+                    <button class="todo-delete-btn" onclick="deleteTodo(${todo.id})">🗑️</button>
+                `;
+                todoList.appendChild(todoItem);
+            });
+
+            updateTodoStats();
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
+
+            if (!text) {
+                return;
+            }
+
+            todos.push({
+                id: todoIdCounter++,
+                text: text,
+                completed: false
+            });
+
+            input.value = '';
+            loadTodos();
+        }
+
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                loadTodos();
+            }
+        }
+
+        function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            loadTodos();
+        }
+
+        function updateTodoStats() {
+            const total = todos.length;
+            const completed = todos.filter(t => t.completed).length;
+            const active = total - completed;
+
+            document.getElementById('total-tasks').textContent = total;
+            document.getElementById('active-tasks').textContent = active;
+            document.getElementById('completed-tasks').textContent = completed;
+        }
+
+        document.getElementById('todo-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addTodo();
+        });
 
         // Navigation
         function openGame(gameId) {
