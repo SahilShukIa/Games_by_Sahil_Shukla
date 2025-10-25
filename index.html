@@ -37,35 +37,38 @@
         .header {
             text-align: center;
             color: white;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             padding: 20px;
-            position: relative;
         }
 
         .header h1 {
             font-size: 28px;
-            margin-bottom: 8px;
+            margin-bottom: 15px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .header p {
+        .header-subtitle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
             font-size: 14px;
             opacity: 0.9;
         }
 
         .theme-toggle {
-            position: absolute;
-            top: 20px;
-            right: 0;
             background: rgba(255, 255, 255, 0.2);
             border: none;
             border-radius: 20px;
             padding: 8px 16px;
             color: white;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px;
             backdrop-filter: blur(10px);
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .theme-toggle:hover {
@@ -532,9 +535,13 @@
         <!-- Main Menu -->
         <div id="menu">
             <div class="header">
-                <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
                 <h1>🎮 Games by Sahil Shukla</h1>
-                <p>Choose a game to play!</p>
+                <div class="header-subtitle">
+                    <span>Choose a game to play!</span>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                </div>
             </div>
 
             <div class="game-menu">
@@ -684,8 +691,8 @@
         }
 
         function updateThemeIcon() {
-            const themeBtn = document.querySelector('.theme-toggle');
-            themeBtn.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+            const themeIcon = document.getElementById('theme-icon');
+            themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
         }
 
         // Number Guessing Game Logic
@@ -736,8 +743,11 @@
         let playerScore = 0;
         let computerScore = 0;
         let tieCount = 0;
+        let rpsScoreLoaded = false;
 
         async function loadRPSScore() {
+            if (rpsScoreLoaded) return; // Don't reload if already loaded
+            
             try {
                 const result = await window.storage.get(`rps_score:${userId}`);
                 if (result && result.value) {
@@ -747,8 +757,10 @@
                     tieCount = scores.ties || 0;
                     updateRPSDisplay();
                 }
+                rpsScoreLoaded = true;
             } catch (error) {
                 console.log('No saved RPS score');
+                rpsScoreLoaded = true;
             }
         }
 
@@ -814,15 +826,18 @@
                 
                 const message = document.getElementById('rps-message');
                 message.className = 'message info';
-                message.textContent = 'Score reset! Start playing again!';
+                message.textContent = '✅ Score reset! Start playing again!';
             }
         }
 
         // To-Do List Logic
         let todos = [];
         let todoIdCounter = 0;
+        let todosLoaded = false;
 
         async function loadTodos() {
+            if (todosLoaded) return; // Don't reload if already loaded
+            
             const todoList = document.getElementById('todo-list');
             
             try {
@@ -832,10 +847,12 @@
                     todos = data.todos || [];
                     todoIdCounter = data.counter || 0;
                 }
+                todosLoaded = true;
             } catch (error) {
                 console.log('No saved todos or error loading:', error);
                 todos = [];
                 todoIdCounter = 0;
+                todosLoaded = true;
             }
 
             displayTodos();
@@ -960,7 +977,11 @@
         }
 
         // Initialize on load
-        loadTheme();
+        window.addEventListener('DOMContentLoaded', async function() {
+            await loadTheme();
+            await loadRPSScore();
+            await loadTodos();
+        });
     </script>
 </body>
 </html>
