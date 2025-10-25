@@ -653,277 +653,286 @@
         </div>
     </div>
 
-    <script>
-    // Telegram WebApp initialization
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.ready();
+    <<script>
+const tg = window.Telegram?.WebApp || null;
+if (tg) { tg.expand(); tg.ready(); }
 
-    const userId = tg.initDataUnsafe?.user?.id || 'guest';
-    const storagePrefix = `user:${userId}:`;
+const userId = tg?.initDataUnsafe?.user?.id || 'guest';
+const storagePrefix = `user:${userId}:`;
 
-    // Helper: Cloud Storage get/set wrappers
-    function storageSet(key, value) {
-        return new Promise((resolve, reject) => {
-            tg.CloudStorage.setItem(storagePrefix + key, value, (success, error) => {
-                if (success) resolve(true);
-                else reject(error);
-            });
+/* ---------- STORAGE HELPERS ---------- */
+async function storageSet(key, value) {
+    if (!tg || !tg.CloudStorage) {
+        localStorage.setItem(storagePrefix + key, value);
+        return true;
+    }
+    return new Promise((resolve, reject) => {
+        tg.CloudStorage.setItem(storagePrefix + key, value, (success, error) => {
+            if (!success) reject(error);
+            else resolve(true);
         });
-    }
-
-    function storageGet(key) {
-        return new Promise((resolve, reject) => {
-            tg.CloudStorage.getItem(storagePrefix + key, (error, value) => {
-                if (error) reject(error);
-                else resolve(value);
-            });
-        });
-    }
-
-    /* ---------- THEME HANDLING ---------- */
-    let currentTheme = 'light';
-
-    async function loadTheme() {
-        try {
-            const saved = await storageGet('theme');
-            if (saved) currentTheme = saved;
-        } catch (e) { /* ignore */ }
-
-        document.body.className = currentTheme + '-mode';
-        updateThemeIcon();
-    }
-
-    async function toggleTheme() {
-        currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-        document.body.className = currentTheme + '-mode';
-        updateThemeIcon();
-        try { await storageSet('theme', currentTheme); } catch (e) { console.error(e); }
-    }
-
-    function updateThemeIcon() {
-        document.getElementById('theme-icon').textContent = currentTheme === 'light' ? '🌙' : '☀️';
-    }
-
-    /* ---------- NUMBER GUESSING ---------- */
-    let secretNumber = Math.floor(Math.random() * 100) + 1;
-    let attempts = 0;
-
-    function makeGuess() {
-        const input = document.getElementById('guess-input');
-        const guess = parseInt(input.value);
-        const message = document.getElementById('guess-message');
-
-        if (!guess || guess < 1 || guess > 100) {
-            message.className = 'message error';
-            message.textContent = 'Please enter a valid number between 1 and 100!';
-            return;
-        }
-
-        attempts++;
-        document.getElementById('attempts').textContent = attempts;
-
-        if (guess === secretNumber) {
-            message.className = 'message success';
-            message.textContent = `🎉 Correct! You guessed in ${attempts} attempts!`;
-            setTimeout(() => {
-                secretNumber = Math.floor(Math.random() * 100) + 1;
-                attempts = 0;
-                document.getElementById('attempts').textContent = '0';
-                message.className = 'message info';
-                message.textContent = 'New game started! Guess again!';
-            }, 3000);
-        } else if (guess < secretNumber) {
-            message.className = 'message info';
-            message.textContent = '📈 Too low!';
-        } else {
-            message.className = 'message info';
-            message.textContent = '📉 Too high!';
-        }
-
-        input.value = '';
-    }
-
-    document.getElementById('guess-input').addEventListener('keypress', e => {
-        if (e.key === 'Enter') makeGuess();
     });
+}
 
-    /* ---------- ROCK PAPER SCISSORS ---------- */
-    let playerScore = 0, computerScore = 0, tieCount = 0;
-
-    async function loadRPSScore() {
-        try {
-            const data = await storageGet('rps_score');
-            if (data) {
-                const s = JSON.parse(data);
-                playerScore = s.player || 0;
-                computerScore = s.computer || 0;
-                tieCount = s.ties || 0;
+async function storageGet(key) {
+    if (!tg || !tg.CloudStorage) {
+        return localStorage.getItem(storagePrefix + key);
+    }
+    return new Promise((resolve) => {
+        tg.CloudStorage.getItems([storagePrefix + key], (error, result) => {
+            if (error) {
+                console.error("CloudStorage get failed:", error);
+                resolve(null);
+            } else {
+                resolve(result[storagePrefix + key] || null);
             }
-        } catch (e) { console.log('No RPS data'); }
-        updateRPSDisplay();
+        });
+    });
+}
+
+/* ---------- THEME ---------- */
+let currentTheme = 'light';
+
+async function loadTheme() {
+    const saved = await storageGet('theme');
+    if (saved) currentTheme = saved;
+    document.body.className = currentTheme + '-mode';
+    updateThemeIcon();
+}
+
+async function toggleTheme() {
+    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.body.className = currentTheme + '-mode';
+    updateThemeIcon();
+    await storageSet('theme', currentTheme);
+}
+
+function updateThemeIcon() {
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+}
+
+/* ---------- NUMBER GUESS ---------- */
+let secretNumber = Math.floor(Math.random() * 100) + 1;
+let attempts = 0;
+
+function makeGuess() {
+    const input = document.getElementById('guess-input');
+    const guess = parseInt(input.value);
+    const message = document.getElementById('guess-message');
+
+    if (!guess || guess < 1 || guess > 100) {
+        message.className = 'message error';
+        message.textContent = 'Please enter a number between 1 and 100';
+        return;
     }
 
-    async function saveRPSScore() {
-        const data = JSON.stringify({ player: playerScore, computer: computerScore, ties: tieCount });
-        try { await storageSet('rps_score', data); } catch (e) { console.error(e); }
-    }
+    attempts++;
+    document.getElementById('attempts').textContent = attempts;
 
-    function updateRPSDisplay() {
-        document.getElementById('player-score').textContent = playerScore;
-        document.getElementById('computer-score').textContent = computerScore;
-        document.getElementById('ties').textContent = tieCount;
-    }
-
-    async function playRPS(playerChoice) {
-        const choices = ['rock', 'paper', 'scissors'];
-        const computerChoice = choices[Math.floor(Math.random() * 3)];
-        const emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
-        const message = document.getElementById('rps-message');
-
-        if (playerChoice === computerChoice) {
-            tieCount++;
+    if (guess === secretNumber) {
+        message.className = 'message success';
+        message.textContent = `🎉 Correct! You guessed in ${attempts} attempts.`;
+        setTimeout(() => {
+            secretNumber = Math.floor(Math.random() * 100) + 1;
+            attempts = 0;
+            document.getElementById('attempts').textContent = '0';
             message.className = 'message info';
-            message.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
-        } else if (
-            (playerChoice === 'rock' && computerChoice === 'scissors') ||
-            (playerChoice === 'paper' && computerChoice === 'rock') ||
-            (playerChoice === 'scissors' && computerChoice === 'paper')
-        ) {
-            playerScore++;
-            message.className = 'message success';
-            message.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
-        } else {
-            computerScore++;
-            message.className = 'message error';
-            message.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
-        }
+            message.textContent = 'New game started!';
+        }, 2500);
+    } else if (guess < secretNumber) {
+        message.className = 'message info';
+        message.textContent = '📈 Too low!';
+    } else {
+        message.className = 'message info';
+        message.textContent = '📉 Too high!';
+    }
 
-        updateRPSDisplay();
+    input.value = '';
+}
+document.getElementById('guess-input')?.addEventListener('keypress', e => {
+    if (e.key === 'Enter') makeGuess();
+});
+
+/* ---------- ROCK PAPER SCISSORS ---------- */
+let playerScore = 0, computerScore = 0, tieCount = 0;
+
+async function loadRPSScore() {
+    const data = await storageGet('rps_score');
+    if (data) {
+        try {
+            const s = JSON.parse(data);
+            playerScore = s.player || 0;
+            computerScore = s.computer || 0;
+            tieCount = s.ties || 0;
+        } catch { }
+    }
+    updateRPSDisplay();
+}
+
+async function saveRPSScore() {
+    const data = JSON.stringify({ player: playerScore, computer: computerScore, ties: tieCount });
+    await storageSet('rps_score', data);
+}
+
+function updateRPSDisplay() {
+    document.getElementById('player-score').textContent = playerScore;
+    document.getElementById('computer-score').textContent = computerScore;
+    document.getElementById('ties').textContent = tieCount;
+}
+
+async function playRPS(playerChoice) {
+    const choices = ['rock', 'paper', 'scissors'];
+    const computerChoice = choices[Math.floor(Math.random() * 3)];
+    const emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
+    const msg = document.getElementById('rps-message');
+
+    if (playerChoice === computerChoice) {
+        tieCount++;
+        msg.className = 'message info';
+        msg.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
+    } else if (
+        (playerChoice === 'rock' && computerChoice === 'scissors') ||
+        (playerChoice === 'paper' && computerChoice === 'rock') ||
+        (playerChoice === 'scissors' && computerChoice === 'paper')
+    ) {
+        playerScore++;
+        msg.className = 'message success';
+        msg.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
+    } else {
+        computerScore++;
+        msg.className = 'message error';
+        msg.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
+    }
+
+    updateRPSDisplay();
+    await saveRPSScore();
+}
+
+async function resetRPSScore() {
+    if (confirm('Reset your RPS score?')) {
+        playerScore = 0; computerScore = 0; tieCount = 0;
         await saveRPSScore();
+        updateRPSDisplay();
+        const msg = document.getElementById('rps-message');
+        msg.className = 'message info';
+        msg.textContent = '✅ Score reset!';
     }
+}
 
-    async function resetRPSScore() {
-        if (confirm('Reset your RPS score?')) {
-            playerScore = computerScore = tieCount = 0;
-            await saveRPSScore();
-            updateRPSDisplay();
-            const msg = document.getElementById('rps-message');
-            msg.className = 'message info';
-            msg.textContent = '✅ Score reset!';
-        }
-    }
+/* ---------- TO-DO LIST ---------- */
+let todos = [], todoIdCounter = 0;
 
-    /* ---------- TO-DO LIST ---------- */
-    let todos = [], todoIdCounter = 0;
-
-    async function loadTodos() {
+async function loadTodos() {
+    const data = await storageGet('todos');
+    if (data) {
         try {
-            const data = await storageGet('todos');
-            if (data) {
-                const parsed = JSON.parse(data);
-                todos = parsed.todos || [];
-                todoIdCounter = parsed.counter || 0;
-            }
-        } catch (e) { console.log('No todos yet'); }
-        displayTodos();
+            const parsed = JSON.parse(data);
+            todos = parsed.todos || [];
+            todoIdCounter = parsed.counter || 0;
+        } catch { }
     }
+    displayTodos();
+}
 
-    async function saveTodos() {
-        const data = JSON.stringify({ todos, counter: todoIdCounter });
-        try { await storageSet('todos', data); } catch (e) { console.error(e); }
+async function saveTodos() {
+    const data = JSON.stringify({ todos, counter: todoIdCounter });
+    await storageSet('todos', data);
+}
+
+async function addTodo() {
+    const input = document.getElementById('todo-input');
+    const text = input.value.trim();
+    if (!text) return;
+    todos.push({ id: todoIdCounter++, text, completed: false });
+    input.value = '';
+    displayTodos();
+    await saveTodos();
+}
+
+async function toggleTodo(id) {
+    const t = todos.find(x => x.id === id);
+    if (t) t.completed = !t.completed;
+    displayTodos();
+    await saveTodos();
+}
+
+async function deleteTodo(id) {
+    todos = todos.filter(t => t.id !== id);
+    displayTodos();
+    await saveTodos();
+}
+
+function displayTodos() {
+    const list = document.getElementById('todo-list');
+    list.innerHTML = '';
+    if (!todos.length) {
+        list.innerHTML = `
+            <div class="todo-empty">
+                <div class="todo-empty-icon">📝</div>
+                <div>No tasks yet. Add your first task above!</div>
+            </div>`;
+    } else {
+        todos.forEach(t => {
+            const el = document.createElement('div');
+            el.className = `todo-item ${t.completed ? 'completed' : ''}`;
+            el.innerHTML = `
+                <input type="checkbox" class="todo-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTodo(${t.id})">
+                <div class="todo-text">${escapeHtml(t.text)}</div>
+                <button class="todo-delete-btn" onclick="deleteTodo(${t.id})">🗑️</button>`;
+            list.appendChild(el);
+        });
     }
+    updateTodoStats();
+}
 
-    async function addTodo() {
-        const input = document.getElementById('todo-input');
-        const text = input.value.trim();
-        if (!text) return;
+function updateTodoStats() {
+    const total = todos.length;
+    const completed = todos.filter(t => t.completed).length;
+    const active = total - completed;
+    document.getElementById('total-tasks').textContent = total;
+    document.getElementById('active-tasks').textContent = active;
+    document.getElementById('completed-tasks').textContent = completed;
+}
 
-        todos.push({ id: todoIdCounter++, text, completed: false });
-        input.value = '';
-        displayTodos();
-        await saveTodos();
-    }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+document.getElementById('todo-input')?.addEventListener('keypress', e => {
+    if (e.key === 'Enter') addTodo();
+});
 
-    async function toggleTodo(id) {
-        const t = todos.find(x => x.id === id);
-        if (t) t.completed = !t.completed;
-        displayTodos();
-        await saveTodos();
-    }
-
-    async function deleteTodo(id) {
-        todos = todos.filter(t => t.id !== id);
-        displayTodos();
-        await saveTodos();
-    }
-
-    function displayTodos() {
-        const list = document.getElementById('todo-list');
-        list.innerHTML = '';
-        if (!todos.length) {
-            list.innerHTML = `
-                <div class="todo-empty">
-                    <div class="todo-empty-icon">📝</div>
-                    <div>No tasks yet. Add your first task above!</div>
-                </div>`;
-        } else {
-            todos.forEach(t => {
-                const el = document.createElement('div');
-                el.className = `todo-item ${t.completed ? 'completed' : ''}`;
-                el.innerHTML = `
-                    <input type="checkbox" class="todo-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTodo(${t.id})">
-                    <div class="todo-text">${escapeHtml(t.text)}</div>
-                    <button class="todo-delete-btn" onclick="deleteTodo(${t.id})">🗑️</button>
-                `;
-                list.appendChild(el);
-            });
-        }
-        updateTodoStats();
-    }
-
-    function updateTodoStats() {
-        const total = todos.length;
-        const completed = todos.filter(t => t.completed).length;
-        const active = total - completed;
-        document.getElementById('total-tasks').textContent = total;
-        document.getElementById('active-tasks').textContent = active;
-        document.getElementById('completed-tasks').textContent = completed;
-    }
-
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    document.getElementById('todo-input').addEventListener('keypress', e => {
-        if (e.key === 'Enter') addTodo();
-    });
-
-    /* ---------- NAVIGATION ---------- */
-    async function openGame(id) {
-        document.getElementById('menu').style.display = 'none';
-        document.getElementById(id).classList.add('active');
+/* ---------- NAVIGATION ---------- */
+async function openGame(id) {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById(id).classList.add('active');
+    if (tg?.BackButton) {
         tg.BackButton.show();
         tg.BackButton.onClick(backToMenu);
-
-        if (id === 'rps') await loadRPSScore();
-        if (id === 'todo') await loadTodos();
     }
+    if (id === 'rps') await loadRPSScore();
+    if (id === 'todo') await loadTodos();
+}
 
-    function backToMenu() {
-        document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('menu').style.display = 'block';
-        tg.BackButton.hide();
-    }
+function backToMenu() {
+    document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('menu').style.display = 'block';
+    if (tg?.BackButton) tg.BackButton.hide();
+}
 
-    /* ---------- INIT ---------- */
-    window.addEventListener('DOMContentLoaded', async () => {
-        await loadTheme();
-        await loadRPSScore();
-        await loadTodos();
-    });
+/* ---------- INIT ---------- */
+window.addEventListener('DOMContentLoaded', async () => {
+    const loading = document.createElement('div');
+    loading.id = 'loading-screen';
+    loading.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:var(--tg-theme-bg-color,#fff);z-index:9999;font-size:18px;';
+    loading.textContent = '⏳ Loading your data...';
+    document.body.appendChild(loading);
+
+    await Promise.all([loadTheme(), loadRPSScore(), loadTodos()]);
+    loading.remove();
+});
 </script>
 </body>
 </html>
