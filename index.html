@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games by Sahil Shukla</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .game-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        }
+
+        .game-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .game-icon.number {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .game-icon.rps {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .game-info {
+            flex: 1;
+        }
+
+        .game-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .game-desc {
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .game-screen {
+            display: none;
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .game-screen.active {
+            display: block;
+        }
+
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #5568d3;
+        }
+
+        .game-content h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Number Guessing Game Styles */
+        .guess-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .guess-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .message.info {
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Rock Paper Scissors Styles */
+        .rps-choices {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            gap: 10px;
+        }
+
+        .rps-choice {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #e2e8f0;
+            background: white;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rps-choice:hover {
+            transform: scale(1.1);
+            border-color: #4facfe;
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        }
+
+        .rps-result {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .rps-score {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Main Menu -->
+        <div id="menu">
+            <div class="header">
+                <h1>🎮 Games by Sahil Shukla</h1>
+                <p>Choose a game to play!</p>
+            </div>
+
+            <div class="game-menu">
+                <div class="game-card" onclick="openGame('number-guess')">
+                    <div class="game-icon number">🔢</div>
+                    <div class="game-info">
+                        <div class="game-title">Number Guessing Game</div>
+                        <div class="game-desc">Guess the secret number between 1-100</div>
+                    </div>
+                </div>
+
+                <div class="game-card" onclick="openGame('rps')">
+                    <div class="game-icon rps">✊</div>
+                    <div class="game-info">
+                        <div class="game-title">Rock Paper Scissors</div>
+                        <div class="game-desc">Challenge the computer in this classic game</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Number Guessing Game -->
+        <div id="number-guess" class="game-screen">
+            <button class="back-btn" onclick="backToMenu()">← Back to Menu</button>
+            <div class="game-content">
+                <h2>🔢 Number Guessing Game</h2>
+                <div id="guess-message" class="message info">Guess a number between 1 and 100!</div>
+                <input type="number" id="guess-input" class="guess-input" placeholder="Enter your guess" min="1" max="100">
+                <button class="guess-btn" onclick="makeGuess()">Submit Guess</button>
+                <div style="text-align: center; color: #718096;">
+                    <p>Attempts: <span id="attempts">0</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rock Paper Scissors Game -->
+        <div id="rps" class="game-screen">
+            <button class="back-btn" onclick="backToMenu()">← Back to Menu</button>
+            <div class="game-content">
+                <h2>✊ Rock Paper Scissors</h2>
+                
+                <div class="rps-score">
+                    <div class="score-item">
+                        <div class="score-label">You</div>
+                        <div class="score-value" id="player-score">0</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Computer</div>
+                        <div class="score-value" id="computer-score">0</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-label">Ties</div>
+                        <div class="score-value" id="ties">0</div>
+                    </div>
+                </div>
+
+                <div id="rps-message" class="message info">Choose your move!</div>
+
+                <div class="rps-choices">
+                    <button class="rps-choice" onclick="playRPS('rock')">🪨</button>
+                    <button class="rps-choice" onclick="playRPS('paper')">📄</button>
+                    <button class="rps-choice" onclick="playRPS('scissors')">✂️</button>
+                </div>
+
+                <div class="rps-result" id="rps-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Number Guessing Game Logic
+        let secretNumber = Math.floor(Math.random() * 100) + 1;
+        let attempts = 0;
+
+        function makeGuess() {
+            const input = document.getElementById('guess-input');
+            const guess = parseInt(input.value);
+            const message = document.getElementById('guess-message');
+            
+            if (!guess || guess < 1 || guess > 100) {
+                message.className = 'message error';
+                message.textContent = 'Please enter a valid number between 1 and 100!';
+                return;
+            }
+
+            attempts++;
+            document.getElementById('attempts').textContent = attempts;
+
+            if (guess === secretNumber) {
+                message.className = 'message success';
+                message.textContent = `🎉 Congratulations! You guessed it in ${attempts} attempts!`;
+                setTimeout(() => {
+                    secretNumber = Math.floor(Math.random() * 100) + 1;
+                    attempts = 0;
+                    document.getElementById('attempts').textContent = '0';
+                    input.value = '';
+                    message.className = 'message info';
+                    message.textContent = 'New game started! Guess a number between 1 and 100!';
+                }, 3000);
+            } else if (guess < secretNumber) {
+                message.className = 'message info';
+                message.textContent = '📈 Too low! Try a higher number.';
+            } else {
+                message.className = 'message info';
+                message.textContent = '📉 Too high! Try a lower number.';
+            }
+
+            input.value = '';
+        }
+
+        document.getElementById('guess-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') makeGuess();
+        });
+
+        // Rock Paper Scissors Game Logic
+        let playerScore = 0;
+        let computerScore = 0;
+        let tieCount = 0;
+
+        function playRPS(playerChoice) {
+            const choices = ['rock', 'paper', 'scissors'];
+            const computerChoice = choices[Math.floor(Math.random() * 3)];
+            
+            const emojis = {
+                rock: '🪨',
+                paper: '📄',
+                scissors: '✂️'
+            };
+
+            const message = document.getElementById('rps-message');
+            const result = document.getElementById('rps-result');
+
+            let outcome = '';
+            if (playerChoice === computerChoice) {
+                outcome = 'tie';
+                tieCount++;
+                message.className = 'message info';
+                message.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
+            } else if (
+                (playerChoice === 'rock' && computerChoice === 'scissors') ||
+                (playerChoice === 'paper' && computerChoice === 'rock') ||
+                (playerChoice === 'scissors' && computerChoice === 'paper')
+            ) {
+                outcome = 'win';
+                playerScore++;
+                message.className = 'message success';
+                message.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
+            } else {
+                outcome = 'lose';
+                computerScore++;
+                message.className = 'message error';
+                message.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
+            }
+
+            document.getElementById('player-score').textContent = playerScore;
+            document.getElementById('computer-score').textContent = computerScore;
+            document.getElementById('ties').textContent = tieCount;
+        }
+
+        // Navigation
+        function openGame(gameId) {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById(gameId).classList.add('active');
+            tg.BackButton.show();
+            tg.BackButton.onClick(backToMenu);
+        }
+
+        function backToMenu() {
+            document.querySelectorAll('.game-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('menu').style.display = 'block';
+            tg.BackButton.hide();
+        }
+    </script>
+</body>
+</html>
