@@ -653,286 +653,360 @@
         </div>
     </div>
 
-    <<script>
-const tg = window.Telegram?.WebApp || null;
-if (tg) { tg.expand(); tg.ready(); }
+    <script>
+        // Initialize Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
 
-const userId = tg?.initDataUnsafe?.user?.id || 'guest';
-const storagePrefix = `user:${userId}:`;
+        // Get user ID for personalized storage
+        const userId = tg.initDataUnsafe?.user?.id || 'guest';
 
-/* ---------- STORAGE HELPERS ---------- */
-async function storageSet(key, value) {
-    if (!tg || !tg.CloudStorage) {
-        localStorage.setItem(storagePrefix + key, value);
-        return true;
-    }
-    return new Promise((resolve, reject) => {
-        tg.CloudStorage.setItem(storagePrefix + key, value, (success, error) => {
-            if (!success) reject(error);
-            else resolve(true);
-        });
-    });
-}
+        // Theme Management
+        let currentTheme = 'light';
 
-async function storageGet(key) {
-    if (!tg || !tg.CloudStorage) {
-        return localStorage.getItem(storagePrefix + key);
-    }
-    return new Promise((resolve) => {
-        tg.CloudStorage.getItems([storagePrefix + key], (error, result) => {
-            if (error) {
-                console.error("CloudStorage get failed:", error);
-                resolve(null);
-            } else {
-                resolve(result[storagePrefix + key] || null);
+        async function loadTheme() {
+            try {
+                const result = await window.storage.get(`theme:${userId}`);
+                if (result && result.value) {
+                    currentTheme = result.value;
+                    document.body.className = currentTheme + '-mode';
+                    updateThemeIcon();
+                }
+            } catch (error) {
+                console.log('No saved theme, using default');
             }
+        }
+
+        async function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.className = currentTheme + '-mode';
+            updateThemeIcon();
+            
+            try {
+                await window.storage.set(`theme:${userId}`, currentTheme);
+            } catch (error) {
+                console.error('Failed to save theme:', error);
+            }
+        }
+
+        function updateThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            themeIcon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Number Guessing Game Logic
+        let secretNumber = Math.floor(Math.random() * 100) + 1;
+        let attempts = 0;
+
+        function makeGuess() {
+            const input = document.getElementById('guess-input');
+            const guess = parseInt(input.value);
+            const message = document.getElementById('guess-message');
+            
+            if (!guess || guess < 1 || guess > 100) {
+                message.className = 'message error';
+                message.textContent = 'Please enter a valid number between 1 and 100!';
+                return;
+            }
+
+            attempts++;
+            document.getElementById('attempts').textContent = attempts;
+
+            if (guess === secretNumber) {
+                message.className = 'message success';
+                message.textContent = `🎉 Congratulations! You guessed it in ${attempts} attempts!`;
+                setTimeout(() => {
+                    secretNumber = Math.floor(Math.random() * 100) + 1;
+                    attempts = 0;
+                    document.getElementById('attempts').textContent = '0';
+                    input.value = '';
+                    message.className = 'message info';
+                    message.textContent = 'New game started! Guess a number between 1 and 100!';
+                }, 3000);
+            } else if (guess < secretNumber) {
+                message.className = 'message info';
+                message.textContent = '📈 Too low! Try a higher number.';
+            } else {
+                message.className = 'message info';
+                message.textContent = '📉 Too high! Try a lower number.';
+            }
+
+            input.value = '';
+        }
+
+        document.getElementById('guess-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') makeGuess();
         });
-    });
-}
 
-/* ---------- THEME ---------- */
-let currentTheme = 'light';
+        // Rock Paper Scissors Game Logic
+        let playerScore = 0;
+        let computerScore = 0;
+        let tieCount = 0;
+        let rpsScoreLoaded = false;
 
-async function loadTheme() {
-    const saved = await storageGet('theme');
-    if (saved) currentTheme = saved;
-    document.body.className = currentTheme + '-mode';
-    updateThemeIcon();
-}
+        async function loadRPSScore() {
+            if (rpsScoreLoaded) {
+                // Just update display with existing data
+                updateRPSDisplay();
+                return;
+            }
+            
+            // This should not happen as we load on startup, but as fallback
+            await loadRPSScoreFromStorage();
+            updateRPSDisplay();
+        }
 
-async function toggleTheme() {
-    currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-    document.body.className = currentTheme + '-mode';
-    updateThemeIcon();
-    await storageSet('theme', currentTheme);
-}
+        async function saveRPSScore() {
+            try {
+                await window.storage.set(`rps_score:${userId}`, JSON.stringify({
+                    player: playerScore,
+                    computer: computerScore,
+                    ties: tieCount
+                }));
+            } catch (error) {
+                console.error('Failed to save RPS score:', error);
+            }
+        }
 
-function updateThemeIcon() {
-    const icon = document.getElementById('theme-icon');
-    if (icon) icon.textContent = currentTheme === 'light' ? '🌙' : '☀️';
-}
+        function updateRPSDisplay() {
+            document.getElementById('player-score').textContent = playerScore;
+            document.getElementById('computer-score').textContent = computerScore;
+            document.getElementById('ties').textContent = tieCount;
+        }
 
-/* ---------- NUMBER GUESS ---------- */
-let secretNumber = Math.floor(Math.random() * 100) + 1;
-let attempts = 0;
+        async function playRPS(playerChoice) {
+            const choices = ['rock', 'paper', 'scissors'];
+            const computerChoice = choices[Math.floor(Math.random() * 3)];
+            
+            const emojis = {
+                rock: '🪨',
+                paper: '📄',
+                scissors: '✂️'
+            };
 
-function makeGuess() {
-    const input = document.getElementById('guess-input');
-    const guess = parseInt(input.value);
-    const message = document.getElementById('guess-message');
+            const message = document.getElementById('rps-message');
 
-    if (!guess || guess < 1 || guess > 100) {
-        message.className = 'message error';
-        message.textContent = 'Please enter a number between 1 and 100';
-        return;
-    }
+            if (playerChoice === computerChoice) {
+                tieCount++;
+                message.className = 'message info';
+                message.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
+            } else if (
+                (playerChoice === 'rock' && computerChoice === 'scissors') ||
+                (playerChoice === 'paper' && computerChoice === 'rock') ||
+                (playerChoice === 'scissors' && computerChoice === 'paper')
+            ) {
+                playerScore++;
+                message.className = 'message success';
+                message.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
+            } else {
+                computerScore++;
+                message.className = 'message error';
+                message.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
+            }
 
-    attempts++;
-    document.getElementById('attempts').textContent = attempts;
+            updateRPSDisplay();
+            await saveRPSScore();
+        }
 
-    if (guess === secretNumber) {
-        message.className = 'message success';
-        message.textContent = `🎉 Correct! You guessed in ${attempts} attempts.`;
-        setTimeout(() => {
-            secretNumber = Math.floor(Math.random() * 100) + 1;
-            attempts = 0;
-            document.getElementById('attempts').textContent = '0';
-            message.className = 'message info';
-            message.textContent = 'New game started!';
-        }, 2500);
-    } else if (guess < secretNumber) {
-        message.className = 'message info';
-        message.textContent = '📈 Too low!';
-    } else {
-        message.className = 'message info';
-        message.textContent = '📉 Too high!';
-    }
+        async function resetRPSScore() {
+            if (confirm('Are you sure you want to reset your score?')) {
+                playerScore = 0;
+                computerScore = 0;
+                tieCount = 0;
+                updateRPSDisplay();
+                await saveRPSScore();
+                
+                const message = document.getElementById('rps-message');
+                message.className = 'message info';
+                message.textContent = '✅ Score reset! Start playing again!';
+            }
+        }
 
-    input.value = '';
-}
-document.getElementById('guess-input')?.addEventListener('keypress', e => {
-    if (e.key === 'Enter') makeGuess();
-});
+        // To-Do List Logic
+        let todos = [];
+        let todoIdCounter = 0;
+        let todosLoaded = false;
 
-/* ---------- ROCK PAPER SCISSORS ---------- */
-let playerScore = 0, computerScore = 0, tieCount = 0;
+        async function loadTodos() {
+            if (todosLoaded) {
+                // Just update display with existing data
+                displayTodos();
+                return;
+            }
+            
+            // This should not happen as we load on startup, but as fallback
+            await loadTodosFromStorage();
+            displayTodos();
+        }
 
-async function loadRPSScore() {
-    const data = await storageGet('rps_score');
-    if (data) {
-        try {
-            const s = JSON.parse(data);
-            playerScore = s.player || 0;
-            computerScore = s.computer || 0;
-            tieCount = s.ties || 0;
-        } catch { }
-    }
-    updateRPSDisplay();
-}
+        function displayTodos() {
+            const todoList = document.getElementById('todo-list');
+            todoList.innerHTML = '';
 
-async function saveRPSScore() {
-    const data = JSON.stringify({ player: playerScore, computer: computerScore, ties: tieCount });
-    await storageSet('rps_score', data);
-}
+            if (todos.length === 0) {
+                todoList.innerHTML = `
+                    <div class="todo-empty">
+                        <div class="todo-empty-icon">📝</div>
+                        <div>No tasks yet. Add your first task above!</div>
+                    </div>
+                `;
+                updateTodoStats();
+                return;
+            }
 
-function updateRPSDisplay() {
-    document.getElementById('player-score').textContent = playerScore;
-    document.getElementById('computer-score').textContent = computerScore;
-    document.getElementById('ties').textContent = tieCount;
-}
+            todos.forEach(todo => {
+                const todoItem = document.createElement('div');
+                todoItem.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                todoItem.innerHTML = `
+                    <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
+                           onchange="toggleTodo(${todo.id})">
+                    <div class="todo-text">${escapeHtml(todo.text)}</div>
+                    <button class="todo-delete-btn" onclick="deleteTodo(${todo.id})">🗑️</button>
+                `;
+                todoList.appendChild(todoItem);
+            });
 
-async function playRPS(playerChoice) {
-    const choices = ['rock', 'paper', 'scissors'];
-    const computerChoice = choices[Math.floor(Math.random() * 3)];
-    const emojis = { rock: '🪨', paper: '📄', scissors: '✂️' };
-    const msg = document.getElementById('rps-message');
+            updateTodoStats();
+        }
 
-    if (playerChoice === computerChoice) {
-        tieCount++;
-        msg.className = 'message info';
-        msg.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
-    } else if (
-        (playerChoice === 'rock' && computerChoice === 'scissors') ||
-        (playerChoice === 'paper' && computerChoice === 'rock') ||
-        (playerChoice === 'scissors' && computerChoice === 'paper')
-    ) {
-        playerScore++;
-        msg.className = 'message success';
-        msg.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
-    } else {
-        computerScore++;
-        msg.className = 'message error';
-        msg.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
-    }
+        async function saveTodos() {
+            try {
+                await window.storage.set(`todos:${userId}`, JSON.stringify({
+                    todos: todos,
+                    counter: todoIdCounter
+                }));
+            } catch (error) {
+                console.error('Failed to save todos:', error);
+            }
+        }
 
-    updateRPSDisplay();
-    await saveRPSScore();
-}
+        async function addTodo() {
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
 
-async function resetRPSScore() {
-    if (confirm('Reset your RPS score?')) {
-        playerScore = 0; computerScore = 0; tieCount = 0;
-        await saveRPSScore();
-        updateRPSDisplay();
-        const msg = document.getElementById('rps-message');
-        msg.className = 'message info';
-        msg.textContent = '✅ Score reset!';
-    }
-}
+            if (!text) {
+                return;
+            }
 
-/* ---------- TO-DO LIST ---------- */
-let todos = [], todoIdCounter = 0;
+            todos.push({
+                id: todoIdCounter++,
+                text: text,
+                completed: false
+            });
 
-async function loadTodos() {
-    const data = await storageGet('todos');
-    if (data) {
-        try {
-            const parsed = JSON.parse(data);
-            todos = parsed.todos || [];
-            todoIdCounter = parsed.counter || 0;
-        } catch { }
-    }
-    displayTodos();
-}
+            input.value = '';
+            displayTodos();
+            await saveTodos();
+        }
 
-async function saveTodos() {
-    const data = JSON.stringify({ todos, counter: todoIdCounter });
-    await storageSet('todos', data);
-}
+        async function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                displayTodos();
+                await saveTodos();
+            }
+        }
 
-async function addTodo() {
-    const input = document.getElementById('todo-input');
-    const text = input.value.trim();
-    if (!text) return;
-    todos.push({ id: todoIdCounter++, text, completed: false });
-    input.value = '';
-    displayTodos();
-    await saveTodos();
-}
+        async function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            displayTodos();
+            await saveTodos();
+        }
 
-async function toggleTodo(id) {
-    const t = todos.find(x => x.id === id);
-    if (t) t.completed = !t.completed;
-    displayTodos();
-    await saveTodos();
-}
+        function updateTodoStats() {
+            const total = todos.length;
+            const completed = todos.filter(t => t.completed).length;
+            const active = total - completed;
 
-async function deleteTodo(id) {
-    todos = todos.filter(t => t.id !== id);
-    displayTodos();
-    await saveTodos();
-}
+            document.getElementById('total-tasks').textContent = total;
+            document.getElementById('active-tasks').textContent = active;
+            document.getElementById('completed-tasks').textContent = completed;
+        }
 
-function displayTodos() {
-    const list = document.getElementById('todo-list');
-    list.innerHTML = '';
-    if (!todos.length) {
-        list.innerHTML = `
-            <div class="todo-empty">
-                <div class="todo-empty-icon">📝</div>
-                <div>No tasks yet. Add your first task above!</div>
-            </div>`;
-    } else {
-        todos.forEach(t => {
-            const el = document.createElement('div');
-            el.className = `todo-item ${t.completed ? 'completed' : ''}`;
-            el.innerHTML = `
-                <input type="checkbox" class="todo-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTodo(${t.id})">
-                <div class="todo-text">${escapeHtml(t.text)}</div>
-                <button class="todo-delete-btn" onclick="deleteTodo(${t.id})">🗑️</button>`;
-            list.appendChild(el);
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('todo-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addTodo();
         });
-    }
-    updateTodoStats();
-}
 
-function updateTodoStats() {
-    const total = todos.length;
-    const completed = todos.filter(t => t.completed).length;
-    const active = total - completed;
-    document.getElementById('total-tasks').textContent = total;
-    document.getElementById('active-tasks').textContent = active;
-    document.getElementById('completed-tasks').textContent = completed;
-}
+        // Navigation
+        async function openGame(gameId) {
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById(gameId).classList.add('active');
+            tg.BackButton.show();
+            tg.BackButton.onClick(backToMenu);
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-document.getElementById('todo-input')?.addEventListener('keypress', e => {
-    if (e.key === 'Enter') addTodo();
-});
+            // Load data when opening specific games
+            if (gameId === 'rps') {
+                await loadRPSScore();
+            } else if (gameId === 'todo') {
+                await loadTodos();
+            }
+        }
 
-/* ---------- NAVIGATION ---------- */
-async function openGame(id) {
-    document.getElementById('menu').style.display = 'none';
-    document.getElementById(id).classList.add('active');
-    if (tg?.BackButton) {
-        tg.BackButton.show();
-        tg.BackButton.onClick(backToMenu);
-    }
-    if (id === 'rps') await loadRPSScore();
-    if (id === 'todo') await loadTodos();
-}
+        function backToMenu() {
+            document.querySelectorAll('.game-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('menu').style.display = 'block';
+            tg.BackButton.hide();
+        }
 
-function backToMenu() {
-    document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('menu').style.display = 'block';
-    if (tg?.BackButton) tg.BackButton.hide();
-}
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async function() {
+            await loadTheme();
+            // Always load data from storage on app start
+            await loadRPSScoreFromStorage();
+            await loadTodosFromStorage();
+        });
 
-/* ---------- INIT ---------- */
-window.addEventListener('DOMContentLoaded', async () => {
-    const loading = document.createElement('div');
-    loading.id = 'loading-screen';
-    loading.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:var(--tg-theme-bg-color,#fff);z-index:9999;font-size:18px;';
-    loading.textContent = '⏳ Loading your data...';
-    document.body.appendChild(loading);
+        // Load RPS score from storage on app start
+        async function loadRPSScoreFromStorage() {
+            try {
+                const result = await window.storage.get(`rps_score:${userId}`);
+                if (result && result.value) {
+                    const scores = JSON.parse(result.value);
+                    playerScore = scores.player || 0;
+                    computerScore = scores.computer || 0;
+                    tieCount = scores.ties || 0;
+                    rpsScoreLoaded = true;
+                    // Update display if on RPS screen
+                    if (document.getElementById('rps').classList.contains('active')) {
+                        updateRPSDisplay();
+                    }
+                }
+            } catch (error) {
+                console.log('No saved RPS score');
+            }
+        }
 
-    await Promise.all([loadTheme(), loadRPSScore(), loadTodos()]);
-    loading.remove();
-});
-</script>
+        // Load todos from storage on app start
+        async function loadTodosFromStorage() {
+            try {
+                const result = await window.storage.get(`todos:${userId}`);
+                if (result && result.value) {
+                    const data = JSON.parse(result.value);
+                    todos = data.todos || [];
+                    todoIdCounter = data.counter || 0;
+                    todosLoaded = true;
+                    // Update display if on todo screen
+                    if (document.getElementById('todo').classList.contains('active')) {
+                        displayTodos();
+                    }
+                }
+            } catch (error) {
+                console.log('No saved todos');
+                todos = [];
+                todoIdCounter = 0;
+                todosLoaded = true;
+            }
+        }
+    </script>
 </body>
 </html>
