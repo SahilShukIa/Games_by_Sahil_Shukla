@@ -746,22 +746,15 @@
         let rpsScoreLoaded = false;
 
         async function loadRPSScore() {
-            if (rpsScoreLoaded) return; // Don't reload if already loaded
-            
-            try {
-                const result = await window.storage.get(`rps_score:${userId}`);
-                if (result && result.value) {
-                    const scores = JSON.parse(result.value);
-                    playerScore = scores.player || 0;
-                    computerScore = scores.computer || 0;
-                    tieCount = scores.ties || 0;
-                    updateRPSDisplay();
-                }
-                rpsScoreLoaded = true;
-            } catch (error) {
-                console.log('No saved RPS score');
-                rpsScoreLoaded = true;
+            if (rpsScoreLoaded) {
+                // Just update display with existing data
+                updateRPSDisplay();
+                return;
             }
+            
+            // This should not happen as we load on startup, but as fallback
+            await loadRPSScoreFromStorage();
+            updateRPSDisplay();
         }
 
         async function saveRPSScore() {
@@ -836,25 +829,14 @@
         let todosLoaded = false;
 
         async function loadTodos() {
-            if (todosLoaded) return; // Don't reload if already loaded
-            
-            const todoList = document.getElementById('todo-list');
-            
-            try {
-                const result = await window.storage.get(`todos:${userId}`);
-                if (result && result.value) {
-                    const data = JSON.parse(result.value);
-                    todos = data.todos || [];
-                    todoIdCounter = data.counter || 0;
-                }
-                todosLoaded = true;
-            } catch (error) {
-                console.log('No saved todos or error loading:', error);
-                todos = [];
-                todoIdCounter = 0;
-                todosLoaded = true;
+            if (todosLoaded) {
+                // Just update display with existing data
+                displayTodos();
+                return;
             }
-
+            
+            // This should not happen as we load on startup, but as fallback
+            await loadTodosFromStorage();
             displayTodos();
         }
 
@@ -979,9 +961,52 @@
         // Initialize on load
         window.addEventListener('DOMContentLoaded', async function() {
             await loadTheme();
-            await loadRPSScore();
-            await loadTodos();
+            // Always load data from storage on app start
+            await loadRPSScoreFromStorage();
+            await loadTodosFromStorage();
         });
+
+        // Load RPS score from storage on app start
+        async function loadRPSScoreFromStorage() {
+            try {
+                const result = await window.storage.get(`rps_score:${userId}`);
+                if (result && result.value) {
+                    const scores = JSON.parse(result.value);
+                    playerScore = scores.player || 0;
+                    computerScore = scores.computer || 0;
+                    tieCount = scores.ties || 0;
+                    rpsScoreLoaded = true;
+                    // Update display if on RPS screen
+                    if (document.getElementById('rps').classList.contains('active')) {
+                        updateRPSDisplay();
+                    }
+                }
+            } catch (error) {
+                console.log('No saved RPS score');
+            }
+        }
+
+        // Load todos from storage on app start
+        async function loadTodosFromStorage() {
+            try {
+                const result = await window.storage.get(`todos:${userId}`);
+                if (result && result.value) {
+                    const data = JSON.parse(result.value);
+                    todos = data.todos || [];
+                    todoIdCounter = data.counter || 0;
+                    todosLoaded = true;
+                    // Update display if on todo screen
+                    if (document.getElementById('todo').classList.contains('active')) {
+                        displayTodos();
+                    }
+                }
+            } catch (error) {
+                console.log('No saved todos');
+                todos = [];
+                todoIdCounter = 0;
+                todosLoaded = true;
+            }
+        }
     </script>
 </body>
 </html>
