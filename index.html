@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Games by Sahil Shukla</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -14,9 +14,19 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.light-mode {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: #e2e8f0;
         }
 
         .container {
@@ -29,6 +39,7 @@
             color: white;
             margin-bottom: 30px;
             padding: 20px;
+            position: relative;
         }
 
         .header h1 {
@@ -42,6 +53,26 @@
             opacity: 0.9;
         }
 
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
         .game-menu {
             display: flex;
             flex-direction: column;
@@ -49,7 +80,6 @@
         }
 
         .game-card {
-            background: white;
             border-radius: 16px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -58,6 +88,15 @@
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        .light-mode .game-card {
+            background: white;
+        }
+
+        .dark-mode .game-card {
+            background: #2d3748;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         .game-card:hover {
@@ -95,8 +134,15 @@
         .game-title {
             font-size: 18px;
             font-weight: 600;
-            color: #2d3748;
             margin-bottom: 4px;
+        }
+
+        .light-mode .game-title {
+            color: #2d3748;
+        }
+
+        .dark-mode .game-title {
+            color: #e2e8f0;
         }
 
         .game-desc {
@@ -106,10 +152,18 @@
 
         .game-screen {
             display: none;
-            background: white;
             border-radius: 16px;
             padding: 25px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .light-mode .game-screen {
+            background: white;
+        }
+
+        .dark-mode .game-screen {
+            background: #2d3748;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         .game-screen.active {
@@ -133,9 +187,16 @@
         }
 
         .game-content h2 {
-            color: #2d3748;
             margin-bottom: 20px;
             text-align: center;
+        }
+
+        .light-mode .game-content h2 {
+            color: #2d3748;
+        }
+
+        .dark-mode .game-content h2 {
+            color: #e2e8f0;
         }
 
         /* Number Guessing Game Styles */
@@ -146,6 +207,12 @@
             border-radius: 8px;
             font-size: 16px;
             margin-bottom: 10px;
+        }
+
+        .dark-mode .guess-input {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #e2e8f0;
         }
 
         .guess-btn {
@@ -174,14 +241,29 @@
             color: #1890ff;
         }
 
+        .dark-mode .message.info {
+            background: #1e3a5f;
+            color: #63b3ed;
+        }
+
         .message.success {
             background: #d4edda;
             color: #155724;
         }
 
+        .dark-mode .message.success {
+            background: #22543d;
+            color: #68d391;
+        }
+
         .message.error {
             background: #f8d7da;
             color: #721c24;
+        }
+
+        .dark-mode .message.error {
+            background: #742a2a;
+            color: #fc8181;
         }
 
         /* Rock Paper Scissors Styles */
@@ -206,6 +288,11 @@
             justify-content: center;
         }
 
+        .dark-mode .rps-choice {
+            background: #1a202c;
+            border-color: #4a5568;
+        }
+
         .rps-choice:hover {
             transform: scale(1.1);
             border-color: #4facfe;
@@ -222,8 +309,15 @@
             justify-content: space-around;
             margin: 20px 0;
             padding: 15px;
-            background: #f7fafc;
             border-radius: 8px;
+        }
+
+        .light-mode .rps-score {
+            background: #f7fafc;
+        }
+
+        .dark-mode .rps-score {
+            background: #1a202c;
         }
 
         .score-item {
@@ -239,7 +333,32 @@
         .score-value {
             font-size: 24px;
             font-weight: 700;
+        }
+
+        .light-mode .score-value {
             color: #2d3748;
+        }
+
+        .dark-mode .score-value {
+            color: #e2e8f0;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px;
+            background: #fc8181;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #f56565;
         }
 
         /* To-Do List Styles */
@@ -255,6 +374,12 @@
             border: 2px solid #e2e8f0;
             border-radius: 8px;
             font-size: 16px;
+        }
+
+        .dark-mode .todo-input {
+            background: #1a202c;
+            border-color: #4a5568;
+            color: #e2e8f0;
         }
 
         .todo-add-btn {
@@ -280,16 +405,32 @@
             align-items: center;
             gap: 12px;
             padding: 15px;
-            background: #f7fafc;
             border-radius: 8px;
             border: 2px solid #e2e8f0;
             transition: all 0.3s;
         }
 
+        .light-mode .todo-item {
+            background: #f7fafc;
+        }
+
+        .dark-mode .todo-item {
+            background: #1a202c;
+            border-color: #4a5568;
+        }
+
         .todo-item.completed {
             opacity: 0.6;
+        }
+
+        .light-mode .todo-item.completed {
             border-color: #c3dafe;
             background: #ebf8ff;
+        }
+
+        .dark-mode .todo-item.completed {
+            border-color: #2c5282;
+            background: #1e3a5f;
         }
 
         .todo-checkbox {
@@ -302,8 +443,15 @@
         .todo-text {
             flex: 1;
             font-size: 15px;
-            color: #2d3748;
             word-break: break-word;
+        }
+
+        .light-mode .todo-text {
+            color: #2d3748;
+        }
+
+        .dark-mode .todo-text {
+            color: #e2e8f0;
         }
 
         .todo-item.completed .todo-text {
@@ -338,8 +486,15 @@
             justify-content: space-around;
             margin-bottom: 20px;
             padding: 15px;
-            background: #f7fafc;
             border-radius: 8px;
+        }
+
+        .light-mode .todo-stats {
+            background: #f7fafc;
+        }
+
+        .dark-mode .todo-stats {
+            background: #1a202c;
         }
 
         .stat-item {
@@ -355,15 +510,29 @@
         .stat-value {
             font-size: 20px;
             font-weight: 700;
+        }
+
+        .light-mode .stat-value {
             color: #2d3748;
+        }
+
+        .dark-mode .stat-value {
+            color: #e2e8f0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
         }
     </style>
 </head>
-<body>
+<body class="light-mode">
     <div class="container">
         <!-- Main Menu -->
         <div id="menu">
             <div class="header">
+                <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
                 <h1>🎮 Games by Sahil Shukla</h1>
                 <p>Choose a game to play!</p>
             </div>
@@ -439,6 +608,8 @@
                 </div>
 
                 <div class="rps-result" id="rps-result"></div>
+
+                <button class="reset-btn" onclick="resetRPSScore()">🔄 Reset Score</button>
             </div>
         </div>
 
@@ -469,10 +640,7 @@
                 </div>
 
                 <div id="todo-list" class="todo-list">
-                    <div class="todo-empty">
-                        <div class="todo-empty-icon">📝</div>
-                        <div>No tasks yet. Add your first task above!</div>
-                    </div>
+                    <div class="loading">Loading your tasks...</div>
                 </div>
             </div>
         </div>
@@ -483,6 +651,42 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
+
+        // Get user ID for personalized storage
+        const userId = tg.initDataUnsafe?.user?.id || 'guest';
+
+        // Theme Management
+        let currentTheme = 'light';
+
+        async function loadTheme() {
+            try {
+                const result = await window.storage.get(`theme:${userId}`);
+                if (result && result.value) {
+                    currentTheme = result.value;
+                    document.body.className = currentTheme + '-mode';
+                    updateThemeIcon();
+                }
+            } catch (error) {
+                console.log('No saved theme, using default');
+            }
+        }
+
+        async function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.className = currentTheme + '-mode';
+            updateThemeIcon();
+            
+            try {
+                await window.storage.set(`theme:${userId}`, currentTheme);
+            } catch (error) {
+                console.error('Failed to save theme:', error);
+            }
+        }
+
+        function updateThemeIcon() {
+            const themeBtn = document.querySelector('.theme-toggle');
+            themeBtn.textContent = currentTheme === 'light' ? '🌙' : '☀️';
+        }
 
         // Number Guessing Game Logic
         let secretNumber = Math.floor(Math.random() * 100) + 1;
@@ -533,7 +737,40 @@
         let computerScore = 0;
         let tieCount = 0;
 
-        function playRPS(playerChoice) {
+        async function loadRPSScore() {
+            try {
+                const result = await window.storage.get(`rps_score:${userId}`);
+                if (result && result.value) {
+                    const scores = JSON.parse(result.value);
+                    playerScore = scores.player || 0;
+                    computerScore = scores.computer || 0;
+                    tieCount = scores.ties || 0;
+                    updateRPSDisplay();
+                }
+            } catch (error) {
+                console.log('No saved RPS score');
+            }
+        }
+
+        async function saveRPSScore() {
+            try {
+                await window.storage.set(`rps_score:${userId}`, JSON.stringify({
+                    player: playerScore,
+                    computer: computerScore,
+                    ties: tieCount
+                }));
+            } catch (error) {
+                console.error('Failed to save RPS score:', error);
+            }
+        }
+
+        function updateRPSDisplay() {
+            document.getElementById('player-score').textContent = playerScore;
+            document.getElementById('computer-score').textContent = computerScore;
+            document.getElementById('ties').textContent = tieCount;
+        }
+
+        async function playRPS(playerChoice) {
             const choices = ['rock', 'paper', 'scissors'];
             const computerChoice = choices[Math.floor(Math.random() * 3)];
             
@@ -544,11 +781,8 @@
             };
 
             const message = document.getElementById('rps-message');
-            const result = document.getElementById('rps-result');
 
-            let outcome = '';
             if (playerChoice === computerChoice) {
-                outcome = 'tie';
                 tieCount++;
                 message.className = 'message info';
                 message.textContent = `It's a tie! Both chose ${emojis[playerChoice]}`;
@@ -557,27 +791,57 @@
                 (playerChoice === 'paper' && computerChoice === 'rock') ||
                 (playerChoice === 'scissors' && computerChoice === 'paper')
             ) {
-                outcome = 'win';
                 playerScore++;
                 message.className = 'message success';
                 message.textContent = `You win! ${emojis[playerChoice]} beats ${emojis[computerChoice]}`;
             } else {
-                outcome = 'lose';
                 computerScore++;
                 message.className = 'message error';
                 message.textContent = `You lose! ${emojis[computerChoice]} beats ${emojis[playerChoice]}`;
             }
 
-            document.getElementById('player-score').textContent = playerScore;
-            document.getElementById('computer-score').textContent = computerScore;
-            document.getElementById('ties').textContent = tieCount;
+            updateRPSDisplay();
+            await saveRPSScore();
+        }
+
+        async function resetRPSScore() {
+            if (confirm('Are you sure you want to reset your score?')) {
+                playerScore = 0;
+                computerScore = 0;
+                tieCount = 0;
+                updateRPSDisplay();
+                await saveRPSScore();
+                
+                const message = document.getElementById('rps-message');
+                message.className = 'message info';
+                message.textContent = 'Score reset! Start playing again!';
+            }
         }
 
         // To-Do List Logic
         let todos = [];
         let todoIdCounter = 0;
 
-        function loadTodos() {
+        async function loadTodos() {
+            const todoList = document.getElementById('todo-list');
+            
+            try {
+                const result = await window.storage.get(`todos:${userId}`);
+                if (result && result.value) {
+                    const data = JSON.parse(result.value);
+                    todos = data.todos || [];
+                    todoIdCounter = data.counter || 0;
+                }
+            } catch (error) {
+                console.log('No saved todos or error loading:', error);
+                todos = [];
+                todoIdCounter = 0;
+            }
+
+            displayTodos();
+        }
+
+        function displayTodos() {
             const todoList = document.getElementById('todo-list');
             todoList.innerHTML = '';
 
@@ -588,6 +852,7 @@
                         <div>No tasks yet. Add your first task above!</div>
                     </div>
                 `;
+                updateTodoStats();
                 return;
             }
 
@@ -597,7 +862,7 @@
                 todoItem.innerHTML = `
                     <input type="checkbox" class="todo-checkbox" ${todo.completed ? 'checked' : ''} 
                            onchange="toggleTodo(${todo.id})">
-                    <div class="todo-text">${todo.text}</div>
+                    <div class="todo-text">${escapeHtml(todo.text)}</div>
                     <button class="todo-delete-btn" onclick="deleteTodo(${todo.id})">🗑️</button>
                 `;
                 todoList.appendChild(todoItem);
@@ -606,7 +871,18 @@
             updateTodoStats();
         }
 
-        function addTodo() {
+        async function saveTodos() {
+            try {
+                await window.storage.set(`todos:${userId}`, JSON.stringify({
+                    todos: todos,
+                    counter: todoIdCounter
+                }));
+            } catch (error) {
+                console.error('Failed to save todos:', error);
+            }
+        }
+
+        async function addTodo() {
             const input = document.getElementById('todo-input');
             const text = input.value.trim();
 
@@ -621,20 +897,23 @@
             });
 
             input.value = '';
-            loadTodos();
+            displayTodos();
+            await saveTodos();
         }
 
-        function toggleTodo(id) {
+        async function toggleTodo(id) {
             const todo = todos.find(t => t.id === id);
             if (todo) {
                 todo.completed = !todo.completed;
-                loadTodos();
+                displayTodos();
+                await saveTodos();
             }
         }
 
-        function deleteTodo(id) {
+        async function deleteTodo(id) {
             todos = todos.filter(t => t.id !== id);
-            loadTodos();
+            displayTodos();
+            await saveTodos();
         }
 
         function updateTodoStats() {
@@ -647,16 +926,29 @@
             document.getElementById('completed-tasks').textContent = completed;
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         document.getElementById('todo-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addTodo();
         });
 
         // Navigation
-        function openGame(gameId) {
+        async function openGame(gameId) {
             document.getElementById('menu').style.display = 'none';
             document.getElementById(gameId).classList.add('active');
             tg.BackButton.show();
             tg.BackButton.onClick(backToMenu);
+
+            // Load data when opening specific games
+            if (gameId === 'rps') {
+                await loadRPSScore();
+            } else if (gameId === 'todo') {
+                await loadTodos();
+            }
         }
 
         function backToMenu() {
@@ -666,6 +958,9 @@
             document.getElementById('menu').style.display = 'block';
             tg.BackButton.hide();
         }
+
+        // Initialize on load
+        loadTheme();
     </script>
 </body>
 </html>
