@@ -736,10 +736,10 @@
             }, 3000);
         } else if (guess < secretNumber) {
             message.className = 'message info';
-            message.textContent = '📈 Too low!';
+            message.textContent = '📈 Too low! Try a higher number.';
         } else {
             message.className = 'message info';
-            message.textContent = '📉 Too high!';
+            message.textContent = '📉 Too high! Try a lower number.';
         }
 
         input.value = '';
